@@ -1,0 +1,1055 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Neon Futbol</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: scoreboard bar above one neon pitch stage; menu and result panels float over the pitch; touch pad below on phones.
+   Single dark look by choice: a neon arena only reads on a dark ground. */
+:root {
+  color-scheme: dark;
+  --bg: #060814;
+  --panel: #0b1029;
+  --ink: #e8ecff;
+  --muted: #8d96cf;
+  --line: #262d63;
+  --cyan: #19f0ff;
+  --pink: #ff3fa8;
+  --lime: #d6ff3a;
+  --display: 'Orbitron', 'Segoe UI', system-ui, sans-serif;
+  --body: 'Rajdhani', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+* { box-sizing: border-box; }
+body {
+  background: radial-gradient(1200px 600px at 50% -10%, #12183f 0%, var(--bg) 60%) var(--bg);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 17px;
+  line-height: 1.4;
+  padding-block: 20px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  -webkit-tap-highlight-color: transparent;
+}
+.wrap { max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+
+.board {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+}
+.team { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.team.t2 { justify-content: flex-end; }
+.name {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(11px, 2.4vw, 15px);
+  letter-spacing: 0.12em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.t1 .name { color: var(--cyan); text-shadow: 0 0 12px rgba(25, 240, 255, 0.7); }
+.t2 .name { color: var(--pink); text-shadow: 0 0 12px rgba(255, 63, 168, 0.7); }
+.score {
+  font-family: var(--display);
+  font-weight: 900;
+  font-size: clamp(30px, 7vw, 52px);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.t1 .score { color: var(--cyan); text-shadow: 0 0 18px rgba(25, 240, 255, 0.85); }
+.t2 .score { color: var(--pink); text-shadow: 0 0 18px rgba(255, 63, 168, 0.85); }
+.clock {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(14px, 3.2vw, 22px);
+  color: var(--lime);
+  text-shadow: 0 0 14px rgba(214, 255, 58, 0.7);
+  padding: 8px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  font-variant-numeric: tabular-nums;
+  min-width: 7.5ch;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.stage {
+  position: relative;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--panel);
+  box-shadow: 0 0 0 1px rgba(143, 123, 255, 0.15), 0 0 40px rgba(143, 123, 255, 0.18), 0 0 90px rgba(25, 240, 255, 0.08);
+}
+canvas { display: block; width: 100%; height: auto; touch-action: none; outline: none; }
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  background: rgba(6, 8, 20, 0.78);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+.card {
+  width: min(520px, 100%);
+  max-height: 100%;
+  overflow: auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: clamp(14px, 3vw, 26px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 0 30px rgba(143, 123, 255, 0.2);
+}
+.card h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 900;
+  font-size: clamp(18px, 4.4vw, 28px);
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  text-shadow: 0 0 16px rgba(143, 123, 255, 0.8);
+  text-wrap: balance;
+}
+.card p { margin: 0; color: var(--muted); }
+.label { font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.group { display: flex; flex-direction: column; gap: 8px; }
+.seg { display: flex; gap: 8px; flex-wrap: wrap; }
+.seg > button { flex: 1 1 140px; }
+
+.btn {
+  font: 700 17px/1.1 var(--body);
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  background: #121938;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 13px 16px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.btn:hover { background: #1a2350; border-color: #3b46a0; }
+.btn:focus-visible { outline: 3px solid var(--cyan); outline-offset: 2px; }
+.btn[aria-pressed="true"] {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  background: rgba(25, 240, 255, 0.08);
+  box-shadow: 0 0 16px rgba(25, 240, 255, 0.25);
+}
+.btn.go {
+  background: var(--lime);
+  color: #11160a;
+  border-color: var(--lime);
+  font-family: var(--display);
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  padding: 16px;
+  box-shadow: 0 0 22px rgba(214, 255, 58, 0.4);
+}
+.btn.go:hover { background: #e6ff7a; border-color: #e6ff7a; }
+.result { display: flex; align-items: center; justify-content: center; gap: 18px; font-family: var(--display); font-weight: 900; font-size: clamp(28px, 8vw, 48px); }
+.result .a { color: var(--cyan); text-shadow: 0 0 16px rgba(25, 240, 255, 0.8); }
+.result .b { color: var(--pink); text-shadow: 0 0 16px rgba(255, 63, 168, 0.8); }
+.result .dash { color: var(--muted); }
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.row > .btn { flex: 1 1 150px; }
+
+.bar { display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; justify-content: space-between; }
+.keys { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: 15px; }
+.keys li { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+kbd {
+  font: 700 12px/1 var(--body);
+  color: var(--ink);
+  background: #121938;
+  border: 1px solid var(--line);
+  border-bottom-width: 3px;
+  border-radius: 6px;
+  padding: 4px 7px;
+}
+.tools { display: flex; gap: 8px; }
+.tools .btn { padding: 9px 14px; font-size: 15px; }
+
+.touch { display: none; align-items: center; justify-content: space-between; gap: 16px; }
+@media (hover: none), (pointer: coarse) { .touch { display: flex; } }
+.stick {
+  position: relative;
+  width: 132px;
+  height: 132px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: radial-gradient(circle, rgba(25, 240, 255, 0.08), rgba(25, 240, 255, 0.02));
+  touch-action: none;
+  flex: none;
+}
+.knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 54px;
+  height: 54px;
+  margin: -27px 0 0 -27px;
+  border-radius: 50%;
+  background: rgba(25, 240, 255, 0.22);
+  border: 2px solid var(--cyan);
+  box-shadow: 0 0 18px rgba(25, 240, 255, 0.5);
+  pointer-events: none;
+}
+.kick {
+  flex: 1;
+  max-width: 220px;
+  height: 100px;
+  font-family: var(--display);
+  font-weight: 900;
+  font-size: 18px;
+  letter-spacing: 0.12em;
+  color: var(--ink);
+  background: rgba(255, 63, 168, 0.14);
+  border: 2px solid var(--pink);
+  border-radius: 18px;
+  box-shadow: 0 0 22px rgba(255, 63, 168, 0.35);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.kick:active { background: rgba(255, 63, 168, 0.35); }
+</style>
+
+<main class="wrap">
+  <div class="board" aria-live="off">
+    <div class="team t1"><span class="name" id="n1">SIZ</span><span class="score" id="s1">0</span></div>
+    <div class="clock" id="clock">1:30</div>
+    <div class="team t2"><span class="score" id="s2">0</span><span class="name" id="n2">KOMPYUTER</span></div>
+  </div>
+
+  <section class="stage">
+    <canvas id="game" aria-label="Neon futbol maydoni"></canvas>
+
+    <div class="overlay" id="menu">
+      <div class="card">
+        <h2>Neon Futbol</h2>
+        <p>To'pni raqib darvozasiga kiriting. O'yin 90 soniya davom etadi, durang bo'lsa oltin gol hal qiladi.</p>
+        <div class="group">
+          <span class="label">Rejim</span>
+          <div class="seg">
+            <button class="btn" type="button" data-mode="1" aria-pressed="true">Kompyuterga qarshi</button>
+            <button class="btn" type="button" data-mode="2" aria-pressed="false">Ikki o'yinchi</button>
+          </div>
+        </div>
+        <div class="group" id="diffGroup">
+          <span class="label">Qiyinlik</span>
+          <div class="seg">
+            <button class="btn" type="button" data-diff="easy" aria-pressed="false">Oson</button>
+            <button class="btn" type="button" data-diff="normal" aria-pressed="true">O'rtacha</button>
+            <button class="btn" type="button" data-diff="hard" aria-pressed="false">Qiyin</button>
+          </div>
+        </div>
+        <button class="btn go" type="button" id="btnStart">BOSHLASH</button>
+        <p>Telefonda gorizontal holatda o'ynash qulayroq.</p>
+      </div>
+    </div>
+
+    <div class="overlay" id="over" hidden>
+      <div class="card">
+        <h2 id="overTitle">G'alaba</h2>
+        <div class="result"><span class="a" id="rA">0</span><span class="dash">:</span><span class="b" id="rB">0</span></div>
+        <div class="row">
+          <button class="btn go" type="button" id="btnAgain">QAYTA O'YNASH</button>
+          <button class="btn" type="button" id="btnMenu">Menyu</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="touch">
+    <div class="stick" id="stick"><div class="knob" id="knob"></div></div>
+    <button class="kick" id="btnKick" type="button">ZARBA</button>
+  </div>
+
+  <div class="bar">
+    <ul class="keys" id="keys1">
+      <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> yoki <kbd>&larr;</kbd><kbd>&uarr;</kbd><kbd>&darr;</kbd><kbd>&rarr;</kbd> yurish</li>
+      <li><kbd>Bo'sh joy</kbd> zarba</li>
+      <li><kbd>P</kbd> pauza</li>
+      <li><kbd>M</kbd> ovoz</li>
+    </ul>
+    <ul class="keys" id="keys2" hidden>
+      <li><span style="color:var(--cyan)">1-o'yinchi</span> <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> + <kbd>Bo'sh joy</kbd></li>
+      <li><span style="color:var(--pink)">2-o'yinchi</span> <kbd>&larr;</kbd><kbd>&uarr;</kbd><kbd>&darr;</kbd><kbd>&rarr;</kbd> + <kbd>Enter</kbd></li>
+      <li><kbd>P</kbd> pauza</li>
+      <li><kbd>M</kbd> ovoz</li>
+    </ul>
+    <div class="tools">
+      <button class="btn" id="btnPause" type="button">Pauza</button>
+      <button class="btn" id="btnMute" type="button">Ovoz: yoqiq</button>
+    </div>
+  </div>
+</main>
+
+<script>
+(function () {
+  'use strict';
+
+  var cv = document.getElementById('game');
+  var ctx = cv.getContext('2d');
+  var TAU = Math.PI * 2;
+
+  /* ---------- pitch geometry (logical units) ---------- */
+  var W = 960, H = 560;
+  var PX = 30, PY = 30, PW = 900, PH = 500;
+  var CX = PX + PW / 2, CY = PY + PH / 2;
+  var GH = 170, GD = 30;
+  var gTop = CY - GH / 2, gBot = CY + GH / 2;
+  var COL = { p1: '#19f0ff', p2: '#ff3fa8', ball: '#d6ff3a', line: '#8f7bff' };
+  var FONT = "'Orbitron', system-ui, sans-serif";
+  var MATCH_SECONDS = 90;
+
+  var pitchCv = document.createElement('canvas');
+
+  function el(id) { return document.getElementById(id); }
+
+  /* ---------- game state ---------- */
+  var state = 'menu';       // menu | count | play | goal | over | paused
+  var prevState = 'play';
+  var mode = 1, diff = 'normal';
+  var scores = [0, 0];
+  var clock = MATCH_SECONDS, overtime = false;
+  var countT = 0, lastCountNum = '', goalT = 0, goalSide = 0, flash = 0, shake = 0;
+  var last = performance.now();
+  var keys = {};
+  var touchAx = 0, touchAy = 0, touchKick = false;
+  var muted = false;
+  var particles = [], trail = [];
+
+  var ball = { x: CX, y: CY, vx: 0, vy: 0, r: 11 };
+  var p1 = { x: 0, y: 0, vx: 0, vy: 0, r: 20, color: COL.p1, ax: 0, ay: 0, kick: false, kickCd: 0, ring: 0, accMul: 1 };
+  var p2 = { x: 0, y: 0, vx: 0, vy: 0, r: 20, color: COL.p2, ax: 0, ay: 0, kick: false, kickCd: 0, ring: 0, accMul: 1, aiT: 0, tx: CX, ty: CY, ex: 0, ey: 0 };
+  var players = [p1, p2];
+
+  var DIFF = {
+    easy:   { acc: 0.78, err: 34, kick: 0.35, react: 9 },
+    normal: { acc: 0.92, err: 14, kick: 0.65, react: 6 },
+    hard:   { acc: 1.02, err: 4,  kick: 1,    react: 4 }
+  };
+
+  function rand(a, b) { return a + Math.random() * (b - a); }
+
+  /* ---------- sound ---------- */
+  var actx = null;
+  var lastSfx = {};
+  function audio() {
+    if (!actx) {
+      try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { actx = null; }
+    }
+    if (actx && actx.state === 'suspended') { try { actx.resume(); } catch (e) {} }
+    return actx;
+  }
+  function tone(freq, dur, type, vol, slideTo, delay) {
+    if (muted) return;
+    var a = audio();
+    if (!a) return;
+    try {
+      var t0 = a.currentTime + (delay || 0);
+      var o = a.createOscillator();
+      var g = a.createGain();
+      o.type = type || 'square';
+      o.frequency.setValueAtTime(freq, t0);
+      if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
+      g.gain.setValueAtTime(vol || 0.05, t0);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      o.connect(g);
+      g.connect(a.destination);
+      o.start(t0);
+      o.stop(t0 + dur + 0.02);
+    } catch (e) {}
+  }
+  function limited(name, ms) {
+    var n = performance.now();
+    if (lastSfx[name] && n - lastSfx[name] < ms) return false;
+    lastSfx[name] = n;
+    return true;
+  }
+  var sfx = {
+    kick: function () { if (limited('kick', 60)) { tone(190, 0.1, 'triangle', 0.14, 70); tone(900, 0.04, 'square', 0.03, 400); } },
+    touch: function (v) { if (limited('touch', 70)) tone(140, 0.07, 'sine', Math.min(0.1, 0.02 + v * 0.01), 80); },
+    wall: function (v) { if (limited('wall', 90)) tone(320, 0.05, 'sine', Math.min(0.06, 0.01 + v * 0.005), 200); },
+    post: function () { if (limited('post', 100)) tone(1100, 0.25, 'triangle', 0.07, 900); },
+    goal: function () {
+      tone(523, 0.18, 'square', 0.06);
+      tone(659, 0.18, 'square', 0.06, null, 0.14);
+      tone(784, 0.18, 'square', 0.06, null, 0.28);
+      tone(1046, 0.5, 'square', 0.07, null, 0.42);
+      tone(80, 0.6, 'sawtooth', 0.08, 40);
+    },
+    beep: function (hi) { tone(hi ? 880 : 440, hi ? 0.35 : 0.14, 'square', 0.05); },
+    whistle: function () { tone(2300, 0.28, 'sine', 0.05, 2100); tone(2300, 0.28, 'sine', 0.05, 2100, 0.32); },
+    end: function () { tone(2300, 0.3, 'sine', 0.05, 2100); tone(2300, 0.3, 'sine', 0.05, 2100, 0.35); tone(2300, 0.6, 'sine', 0.05, 2100, 0.7); }
+  };
+
+  /* ---------- pre-rendered neon pitch ---------- */
+  function glowLine(g, color, blur, width) {
+    g.strokeStyle = color;
+    g.shadowColor = color;
+    g.shadowBlur = blur;
+    g.lineWidth = width;
+  }
+
+  function buildPitch() {
+    var sc = cv.width / W;
+    pitchCv.width = cv.width;
+    pitchCv.height = cv.height;
+    var g = pitchCv.getContext('2d');
+    g.setTransform(sc, 0, 0, sc, 0, 0);
+    g.fillStyle = '#060814';
+    g.fillRect(0, 0, W, H);
+
+    var gr = g.createLinearGradient(0, PY, 0, PY + PH);
+    gr.addColorStop(0, '#0c1338');
+    gr.addColorStop(1, '#080c27');
+    g.fillStyle = gr;
+    g.fillRect(PX, PY, PW, PH);
+    for (var i = 0; i < 10; i += 2) {
+      g.fillStyle = 'rgba(25,240,255,0.035)';
+      g.fillRect(PX + i * PW / 10, PY, PW / 10, PH);
+    }
+
+    // nets
+    function net(x0, color) {
+      g.fillStyle = color === COL.p1 ? 'rgba(25,240,255,0.08)' : 'rgba(255,63,168,0.08)';
+      g.fillRect(x0, gTop, GD, GH);
+      g.strokeStyle = color === COL.p1 ? 'rgba(25,240,255,0.22)' : 'rgba(255,63,168,0.22)';
+      g.lineWidth = 1;
+      g.shadowBlur = 0;
+      g.beginPath();
+      for (var x = x0; x <= x0 + GD; x += 8) { g.moveTo(x, gTop); g.lineTo(x, gBot); }
+      for (var y = gTop; y <= gBot; y += 8) { g.moveTo(x0, y); g.lineTo(x0 + GD, y); }
+      g.stroke();
+    }
+    net(PX - GD, COL.p1);
+    net(PX + PW, COL.p2);
+
+    // markings
+    glowLine(g, COL.line, 14, 2.5);
+    g.beginPath();
+    g.moveTo(PX, gTop); g.lineTo(PX, PY); g.lineTo(PX + PW, PY); g.lineTo(PX + PW, gTop);
+    g.moveTo(PX, gBot); g.lineTo(PX, PY + PH); g.lineTo(PX + PW, PY + PH); g.lineTo(PX + PW, gBot);
+    g.stroke();
+    g.beginPath();
+    g.moveTo(CX, PY); g.lineTo(CX, PY + PH);
+    g.stroke();
+    g.beginPath(); g.arc(CX, CY, 72, 0, TAU); g.stroke();
+    g.fillStyle = COL.line;
+    g.beginPath(); g.arc(CX, CY, 5, 0, TAU); g.fill();
+    // boxes
+    g.strokeRect(PX, CY - 150, 120, 300);
+    g.strokeRect(PX + PW - 120, CY - 150, 120, 300);
+    g.strokeRect(PX, CY - 85, 48, 170);
+    g.strokeRect(PX + PW - 48, CY - 85, 48, 170);
+    // corner arcs
+    g.beginPath(); g.arc(PX, PY, 16, 0, Math.PI / 2); g.stroke();
+    g.beginPath(); g.arc(PX + PW, PY, 16, Math.PI / 2, Math.PI); g.stroke();
+    g.beginPath(); g.arc(PX, PY + PH, 16, -Math.PI / 2, 0); g.stroke();
+    g.beginPath(); g.arc(PX + PW, PY + PH, 16, Math.PI, Math.PI * 1.5); g.stroke();
+
+    // goal frames and posts
+    glowLine(g, COL.p1, 16, 4);
+    g.beginPath(); g.moveTo(PX, gTop); g.lineTo(PX - GD, gTop); g.lineTo(PX - GD, gBot); g.lineTo(PX, gBot); g.stroke();
+    glowLine(g, COL.p2, 16, 4);
+    g.beginPath(); g.moveTo(PX + PW, gTop); g.lineTo(PX + PW + GD, gTop); g.lineTo(PX + PW + GD, gBot); g.lineTo(PX + PW, gBot); g.stroke();
+    var posts = [[PX, gTop, COL.p1], [PX, gBot, COL.p1], [PX + PW, gTop, COL.p2], [PX + PW, gBot, COL.p2]];
+    for (var k = 0; k < posts.length; k++) {
+      g.shadowColor = posts[k][2];
+      g.shadowBlur = 18;
+      g.fillStyle = posts[k][2];
+      g.beginPath(); g.arc(posts[k][0], posts[k][1], 6, 0, TAU); g.fill();
+    }
+    g.shadowBlur = 0;
+  }
+
+  function resize() {
+    var r = cv.getBoundingClientRect();
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var cw = Math.max(260, r.width || 900);
+    cv.style.aspectRatio = W + ' / ' + H;
+    cv.width = Math.round(cw * dpr);
+    cv.height = Math.round(cw * (H / W) * dpr);
+    buildPitch();
+  }
+
+  /* ---------- helpers: physics ---------- */
+  function collide(a, b, ma, mb, e) {
+    var dx = b.x - a.x, dy = b.y - a.y;
+    var d = Math.sqrt(dx * dx + dy * dy);
+    var min = a.r + b.r;
+    if (d >= min) return 0;
+    if (d < 0.0001) { d = 0.0001; dx = 0.0001; }
+    var nx = dx / d, ny = dy / d, ov = min - d, im = 1 / ma + 1 / mb;
+    a.x -= nx * ov * (1 / ma) / im; a.y -= ny * ov * (1 / ma) / im;
+    b.x += nx * ov * (1 / mb) / im; b.y += ny * ov * (1 / mb) / im;
+    var rv = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+    if (rv < 0) {
+      var j = -(1 + e) * rv / im;
+      a.vx -= j * nx / ma; a.vy -= j * ny / ma;
+      b.vx += j * nx / mb; b.vy += j * ny / mb;
+      return -rv;
+    }
+    return 0;
+  }
+
+  function postHit(b, px, py) {
+    var dx = b.x - px, dy = b.y - py;
+    var d = Math.sqrt(dx * dx + dy * dy), min = b.r + 6;
+    if (d < min && d > 0) {
+      var nx = dx / d, ny = dy / d;
+      b.x = px + nx * min; b.y = py + ny * min;
+      var vn = b.vx * nx + b.vy * ny;
+      if (vn < 0) {
+        b.vx -= 1.9 * vn * nx; b.vy -= 1.9 * vn * ny;
+        sfx.post();
+      }
+    }
+  }
+
+  function ballWalls() {
+    var b = ball, e = 0.82, v;
+    if (b.y < PY + b.r) { if (b.y > 0) { v = -b.vy; b.y = PY + b.r; b.vy = Math.abs(b.vy) * e; if (v > 3) sfx.wall(v); } }
+    if (b.y > PY + PH - b.r) { v = b.vy; b.y = PY + PH - b.r; b.vy = -Math.abs(b.vy) * e; if (v > 3) sfx.wall(v); }
+
+    // left side
+    if (b.x < PX + b.r) {
+      if (b.y > gTop && b.y < gBot) {
+        if (b.x < PX) {
+          if (b.y < gTop + b.r) { b.y = gTop + b.r; b.vy = Math.abs(b.vy) * e; }
+          if (b.y > gBot - b.r) { b.y = gBot - b.r; b.vy = -Math.abs(b.vy) * e; }
+          if (b.x < PX - GD + b.r) { b.x = PX - GD + b.r; b.vx = Math.abs(b.vx) * 0.3; }
+        }
+      } else {
+        v = -b.vx; b.x = PX + b.r; b.vx = Math.abs(b.vx) * e; if (v > 3) sfx.wall(v);
+      }
+    }
+    // right side
+    if (b.x > PX + PW - b.r) {
+      if (b.y > gTop && b.y < gBot) {
+        if (b.x > PX + PW) {
+          if (b.y < gTop + b.r) { b.y = gTop + b.r; b.vy = Math.abs(b.vy) * e; }
+          if (b.y > gBot - b.r) { b.y = gBot - b.r; b.vy = -Math.abs(b.vy) * e; }
+          if (b.x > PX + PW + GD - b.r) { b.x = PX + PW + GD - b.r; b.vx = -Math.abs(b.vx) * 0.3; }
+        }
+      } else {
+        v = b.vx; b.x = PX + PW - b.r; b.vx = -Math.abs(b.vx) * e; if (v > 3) sfx.wall(v);
+      }
+    }
+  }
+
+  function tryKick(p, dt) {
+    if (p.kickCd > 0) p.kickCd -= dt;
+    if (p.kick && p.kickCd <= 0) {
+      p.ring = 1;
+      p.kickCd = 18;
+      var dx = ball.x - p.x, dy = ball.y - p.y;
+      var d = Math.sqrt(dx * dx + dy * dy);
+      if (d < p.r + ball.r + 11 && d > 0) {
+        var nx = dx / d, ny = dy / d;
+        ball.vx = ball.vx * 0.25 + nx * 10.5 + p.vx * 0.4;
+        ball.vy = ball.vy * 0.25 + ny * 10.5 + p.vy * 0.4;
+        sfx.kick();
+        sparks(ball.x - nx * ball.r, ball.y - ny * ball.r, p.color, 10, 3.5);
+      }
+    }
+    if (p.ring > 0) p.ring = Math.max(0, p.ring - 0.07 * dt);
+  }
+
+  function physics(dt, frozenControl) {
+    var sub = 2, h = dt / sub;
+    var i, p;
+    for (var s = 0; s < sub; s++) {
+      for (i = 0; i < 2; i++) {
+        p = players[i];
+        var ax = frozenControl ? 0 : p.ax, ay = frozenControl ? 0 : p.ay;
+        var acc = 0.62 * p.accMul;
+        p.vx += ax * acc * h; p.vy += ay * acc * h;
+        var f = Math.pow(0.86, h);
+        p.vx *= f; p.vy *= f;
+        p.x += p.vx * h; p.y += p.vy * h;
+        if (p.x < PX + p.r) { p.x = PX + p.r; p.vx = 0; }
+        if (p.x > PX + PW - p.r) { p.x = PX + PW - p.r; p.vx = 0; }
+        if (p.y < PY + p.r) { p.y = PY + p.r; p.vy = 0; }
+        if (p.y > PY + PH - p.r) { p.y = PY + PH - p.r; p.vy = 0; }
+      }
+      var bf = Math.pow(0.993, h);
+      ball.vx *= bf; ball.vy *= bf;
+      var sp = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
+      if (sp > 16) { ball.vx *= 16 / sp; ball.vy *= 16 / sp; }
+      ball.x += ball.vx * h; ball.y += ball.vy * h;
+
+      for (i = 0; i < 2; i++) {
+        var imp = collide(players[i], ball, 5, 1, 0.55);
+        if (imp > 2.5) sfx.touch(imp);
+      }
+      collide(p1, p2, 5, 5, 0.4);
+      postHit(ball, PX, gTop); postHit(ball, PX, gBot);
+      postHit(ball, PX + PW, gTop); postHit(ball, PX + PW, gBot);
+      ballWalls();
+    }
+    if (!frozenControl) {
+      tryKick(p1, dt);
+      tryKick(p2, dt);
+    } else {
+      p1.ring = Math.max(0, p1.ring - 0.07 * dt);
+      p2.ring = Math.max(0, p2.ring - 0.07 * dt);
+    }
+  }
+
+  /* ---------- particles ---------- */
+  function sparks(x, y, color, n, spd) {
+    for (var i = 0; i < n; i++) {
+      var a = rand(0, TAU), v = rand(0.5, 1) * spd;
+      particles.push({ x: x, y: y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0, max: rand(18, 34), color: color, size: rand(1.5, 3.2) });
+    }
+  }
+  function burst(x, y, colors, n) {
+    for (var i = 0; i < n; i++) {
+      var a = rand(0, TAU), v = rand(1.5, 8);
+      particles.push({ x: x, y: y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0, max: rand(40, 90), color: colors[i % colors.length], size: rand(2, 4.5) });
+    }
+  }
+  function updateParticles(dt) {
+    for (var i = particles.length - 1; i >= 0; i--) {
+      var p = particles[i];
+      p.life += dt;
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      p.vx *= Math.pow(0.95, dt); p.vy *= Math.pow(0.95, dt);
+      if (p.life >= p.max) particles.splice(i, 1);
+    }
+  }
+
+  /* ---------- AI (player 2 attacks the left goal) ---------- */
+  function ai(p, dt) {
+    var cfg = DIFF[diff];
+    p.accMul = cfg.acc;
+    p.aiT -= dt;
+    var b = ball;
+    if (p.aiT <= 0) {
+      p.aiT = cfg.react;
+      p.ex = rand(-cfg.err, cfg.err);
+      p.ey = rand(-cfg.err, cfg.err);
+      var dd = Math.hypot(p.x - b.x, p.y - b.y);
+      var lead = Math.min(10, dd / 6);
+      var bx = b.x + b.vx * lead, by = b.y + b.vy * lead;
+      var tx, ty;
+      if (bx < CX - 90) {
+        // ball deep in the other half: hold a defensive line
+        tx = CX + 140;
+        ty = CY + (by - CY) * 0.6;
+      } else if (p.x < bx + 6) {
+        // we are in front of the ball: swing around it
+        tx = bx + 58;
+        ty = by + (p.y > by ? 1 : -1) * 66;
+      } else {
+        var dx = bx - PX, dy = by - CY;
+        var dl = Math.sqrt(dx * dx + dy * dy) || 1;
+        var off = p.r + b.r + 2;
+        tx = bx + dx / dl * off;
+        ty = by + dy / dl * off;
+      }
+      p.tx = tx + p.ex;
+      p.ty = ty + p.ey;
+    }
+    var mx = p.tx - p.x, my = p.ty - p.y;
+    var ml = Math.sqrt(mx * mx + my * my);
+    if (ml > 4) {
+      var k = Math.min(1, ml / 40);
+      p.ax = mx / ml * k;
+      p.ay = my / ml * k;
+    } else { p.ax = 0; p.ay = 0; }
+
+    var bd = Math.hypot(b.x - p.x, b.y - p.y);
+    var gx = PX - p.x, gy = CY - p.y;
+    var gl = Math.sqrt(gx * gx + gy * gy) || 1;
+    var dot = ((b.x - p.x) * gx + (b.y - p.y) * gy) / ((bd || 1) * gl);
+    p.kick = bd < p.r + b.r + 9 && dot > 0.55 && Math.random() < cfg.kick;
+  }
+
+  /* ---------- input ---------- */
+  function readCtrl(dt) {
+    var k = keys;
+    var a1x, a1y;
+    if (mode === 1) {
+      a1x = ((k.KeyD || k.ArrowRight) ? 1 : 0) - ((k.KeyA || k.ArrowLeft) ? 1 : 0);
+      a1y = ((k.KeyS || k.ArrowDown) ? 1 : 0) - ((k.KeyW || k.ArrowUp) ? 1 : 0);
+      p1.kick = !!(k.Space || k.Enter || k.KeyF || touchKick);
+    } else {
+      a1x = (k.KeyD ? 1 : 0) - (k.KeyA ? 1 : 0);
+      a1y = (k.KeyS ? 1 : 0) - (k.KeyW ? 1 : 0);
+      p1.kick = !!(k.Space || k.KeyF || touchKick);
+      var a2x = (k.ArrowRight ? 1 : 0) - (k.ArrowLeft ? 1 : 0);
+      var a2y = (k.ArrowDown ? 1 : 0) - (k.ArrowUp ? 1 : 0);
+      var l2 = Math.sqrt(a2x * a2x + a2y * a2y);
+      if (l2 > 1) { a2x /= l2; a2y /= l2; }
+      p2.ax = a2x; p2.ay = a2y;
+      p2.kick = !!(k.Enter || k.NumpadEnter || k.ShiftRight);
+      p2.accMul = 1;
+    }
+    a1x += touchAx; a1y += touchAy;
+    var l1 = Math.sqrt(a1x * a1x + a1y * a1y);
+    if (l1 > 1) { a1x /= l1; a1y /= l1; }
+    p1.ax = a1x; p1.ay = a1y;
+    p1.accMul = 1;
+    if (mode === 1) ai(p2, dt);
+  }
+
+  /* ---------- match flow ---------- */
+  function fmt(sec) {
+    var s = Math.max(0, Math.ceil(sec));
+    return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  }
+  function updateHUD() {
+    el('s1').textContent = String(scores[0]);
+    el('s2').textContent = String(scores[1]);
+    el('clock').textContent = overtime ? 'OLTIN GOL' : fmt(clock);
+  }
+  function setNames() {
+    el('n1').textContent = mode === 1 ? 'SIZ' : "1-O'YINCHI";
+    el('n2').textContent = mode === 1 ? 'KOMPYUTER' : "2-O'YINCHI";
+    el('keys1').hidden = mode !== 1;
+    el('keys2').hidden = mode !== 2;
+  }
+  function resetPositions() {
+    p1.x = PX + PW * 0.25; p1.y = CY; p1.vx = p1.vy = 0; p1.ax = p1.ay = 0; p1.kickCd = 0; p1.ring = 0;
+    p2.x = PX + PW * 0.75; p2.y = CY; p2.vx = p2.vy = 0; p2.ax = p2.ay = 0; p2.kickCd = 0; p2.ring = 0; p2.aiT = 0;
+    ball.x = CX; ball.y = CY; ball.vx = ball.vy = 0;
+    trail = [];
+  }
+  function newMatch() {
+    scores = [0, 0];
+    clock = MATCH_SECONDS;
+    overtime = false;
+    resetPositions();
+    particles = [];
+    countT = 160;
+    lastCountNum = '';
+    state = 'count';
+    el('menu').hidden = true;
+    el('over').hidden = true;
+    setNames();
+    updateHUD();
+    syncPause();
+  }
+  function scoreGoal(side) {
+    scores[side]++;
+    state = 'goal';
+    goalT = 115;
+    goalSide = side;
+    flash = 1;
+    shake = 14;
+    burst(ball.x, ball.y, side === 0 ? [COL.p1, '#ffffff', COL.ball] : [COL.p2, '#ffffff', COL.ball], 110);
+    sfx.goal();
+    updateHUD();
+  }
+  function endMatch() {
+    state = 'over';
+    sfx.end();
+    var t;
+    if (scores[0] === scores[1]) t = 'Durang';
+    else if (mode === 1) t = scores[0] > scores[1] ? "G'alaba! Siz yutdingiz" : 'Kompyuter yutdi';
+    else t = scores[0] > scores[1] ? "1-o'yinchi g'alaba qozondi" : "2-o'yinchi g'alaba qozondi";
+    el('overTitle').textContent = t;
+    el('rA').textContent = String(scores[0]);
+    el('rB').textContent = String(scores[1]);
+    el('over').hidden = false;
+    syncPause();
+  }
+  function togglePause() {
+    if (state === 'paused') { state = prevState; }
+    else if (state === 'play' || state === 'count' || state === 'goal') { prevState = state; state = 'paused'; keys = {}; touchKick = false; }
+    syncPause();
+  }
+  function syncPause() {
+    el('btnPause').textContent = state === 'paused' ? 'Davom etish' : 'Pauza';
+  }
+  function toggleMute() {
+    muted = !muted;
+    el('btnMute').textContent = muted ? 'Ovoz: o‘chiq' : 'Ovoz: yoqiq';
+    if (!muted) audio();
+  }
+
+  function update(dt) {
+    if (state === 'count') {
+      countT -= dt;
+      var num = countT > 100 ? '3' : (countT > 60 ? '2' : (countT > 30 ? '1' : 'BOSHLA!'));
+      if (num !== lastCountNum) {
+        lastCountNum = num;
+        if (num === 'BOSHLA!') sfx.whistle(); else sfx.beep(false);
+      }
+      if (countT <= 0) state = 'play';
+      physics(dt, true);
+    } else if (state === 'play') {
+      readCtrl(dt);
+      clock -= dt / 60;
+      if (!overtime && clock <= 0) {
+        clock = 0;
+        if (scores[0] !== scores[1]) { updateHUD(); endMatch(); return; }
+        overtime = true;
+      }
+      physics(dt, false);
+      updateHUD();
+      if (state === 'play') {
+        if (ball.x < PX - 4) scoreGoal(1);
+        else if (ball.x > PX + PW + 4) scoreGoal(0);
+      }
+    } else if (state === 'goal') {
+      physics(dt * 0.45, true);
+      goalT -= dt;
+      if (goalT <= 0) {
+        if (overtime) { endMatch(); }
+        else {
+          resetPositions();
+          countT = 95;
+          lastCountNum = '';
+          state = 'count';
+        }
+      }
+    }
+    if (state === 'play' || state === 'goal' || state === 'count') {
+      trail.push({ x: ball.x, y: ball.y });
+      if (trail.length > 16) trail.shift();
+    }
+  }
+
+  /* ---------- drawing ---------- */
+  function drawPlayer(p) {
+    ctx.shadowColor = p.color;
+    ctx.shadowBlur = 22;
+    ctx.fillStyle = '#0a0f2a';
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, TAU); ctx.fill();
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = p.color;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 0.32;
+    ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r - 7, 0, TAU); ctx.fill();
+    ctx.globalAlpha = 1;
+    var a = Math.atan2(ball.y - p.y, ball.x - p.x);
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.arc(p.x + Math.cos(a) * (p.r - 9), p.y + Math.sin(a) * (p.r - 9), 3.4, 0, TAU); ctx.fill();
+    if (p.ring > 0) {
+      ctx.globalAlpha = p.ring * 0.8;
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = p.color;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r + (1 - p.ring) * 30 + 3, 0, TAU); ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  function centerText(txt, y, size, color, glow) {
+    ctx.font = '900 ' + size + 'px ' + FONT;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = color;
+    ctx.shadowBlur = glow || 26;
+    ctx.fillStyle = color;
+    ctx.fillText(txt, W / 2, y);
+    ctx.shadowBlur = 0;
+  }
+
+  function draw(ts) {
+    var sc = cv.width / W;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.drawImage(pitchCv, 0, 0);
+    ctx.setTransform(sc, 0, 0, sc, 0, 0);
+    if (shake > 0) ctx.translate(rand(-shake, shake) * 0.5, rand(-shake, shake) * 0.5);
+
+    // goal flash
+    if (flash > 0) {
+      var gc = goalSide === 0 ? '25,240,255' : '255,63,168';
+      ctx.fillStyle = 'rgba(' + gc + ',' + (flash * 0.22).toFixed(3) + ')';
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    // ball trail
+    ctx.globalCompositeOperation = 'lighter';
+    for (var i = 0; i < trail.length; i++) {
+      var t = trail[i], f = (i + 1) / trail.length;
+      ctx.globalAlpha = f * 0.35;
+      ctx.fillStyle = COL.ball;
+      ctx.beginPath(); ctx.arc(t.x, t.y, ball.r * (0.35 + 0.55 * f), 0, TAU); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+
+    drawPlayer(p1);
+    drawPlayer(p2);
+
+    // ball
+    ctx.shadowColor = COL.ball;
+    ctx.shadowBlur = 26;
+    ctx.fillStyle = '#f6ffd6';
+    ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, TAU); ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = COL.ball;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = COL.ball;
+    ctx.beginPath(); ctx.arc(ball.x, ball.y, 3.5, 0, TAU); ctx.fill();
+
+    // particles
+    ctx.globalCompositeOperation = 'lighter';
+    for (var k = 0; k < particles.length; k++) {
+      var p = particles[k];
+      ctx.globalAlpha = Math.max(0, 1 - p.life / p.max);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+    }
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+
+    // overlays on canvas
+    if (state === 'count') {
+      var n = lastCountNum || '3';
+      var pulse = 1 + 0.08 * Math.sin(ts * 0.02);
+      centerText(n, CY - 90, (n === 'BOSHLA!' ? 56 : 110) * pulse, COL.ball, 30);
+    } else if (state === 'goal') {
+      var sideColor = goalSide === 0 ? COL.p1 : COL.p2;
+      var sz = 100 + Math.sin(ts * 0.015) * 6;
+      centerText('GOL!', CY - 70, sz, sideColor, 36);
+      var who = mode === 1 ? (goalSide === 0 ? 'SIZ' : 'KOMPYUTER') : (goalSide === 0 ? "1-O'YINCHI" : "2-O'YINCHI");
+      centerText(who, CY + 4, 22, '#ffffff', 14);
+    } else if (state === 'paused') {
+      ctx.fillStyle = 'rgba(6,8,20,0.6)';
+      ctx.fillRect(0, 0, W, H);
+      centerText('PAUZA', CY - 16, 60, COL.line, 30);
+      centerText('Davom etish: P', CY + 40, 16, '#aab2e8', 0);
+    }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+  }
+
+  function frame(ts) {
+    var dt = Math.min(2.5, (ts - last) / 16.667);
+    if (!(dt > 0)) dt = 1;
+    last = ts;
+    if (state !== 'paused') {
+      update(dt);
+      updateParticles(dt);
+      if (flash > 0) flash = Math.max(0, flash - 0.03 * dt);
+      if (shake > 0) shake = Math.max(0, shake - 0.6 * dt);
+    }
+    draw(ts);
+    requestAnimationFrame(frame);
+  }
+
+  /* ---------- events ---------- */
+  var GAME_KEYS = { Space: 1, ArrowUp: 1, ArrowDown: 1, ArrowLeft: 1, ArrowRight: 1, Enter: 0 };
+  window.addEventListener('keydown', function (e) {
+    var code = e.code;
+    var inMatch = state === 'play' || state === 'count' || state === 'goal' || state === 'paused';
+    if (inMatch && (GAME_KEYS[code] || (code === 'Enter' && mode === 2))) e.preventDefault();
+    if (code === 'KeyP' || code === 'Escape') { togglePause(); return; }
+    if (code === 'KeyM') { toggleMute(); return; }
+    if (inMatch) audio();
+    keys[code] = true;
+  });
+  window.addEventListener('keyup', function (e) { keys[e.code] = false; });
+  window.addEventListener('blur', function () { keys = {}; touchKick = false; });
+  window.addEventListener('resize', resize);
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden && (state === 'play' || state === 'goal' || state === 'count')) togglePause();
+  });
+
+  function pick(attr, value) {
+    var btns = document.querySelectorAll('[' + attr + ']');
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].setAttribute('aria-pressed', btns[i].getAttribute(attr) === value ? 'true' : 'false');
+    }
+  }
+  var modeBtns = document.querySelectorAll('[data-mode]');
+  for (var mi = 0; mi < modeBtns.length; mi++) {
+    modeBtns[mi].addEventListener('click', function (e) {
+      mode = parseInt(e.currentTarget.getAttribute('data-mode'), 10);
+      pick('data-mode', String(mode));
+      el('diffGroup').hidden = mode !== 1;
+      setNames();
+    });
+  }
+  var diffBtns = document.querySelectorAll('[data-diff]');
+  for (var di = 0; di < diffBtns.length; di++) {
+    diffBtns[di].addEventListener('click', function (e) {
+      diff = e.currentTarget.getAttribute('data-diff');
+      pick('data-diff', diff);
+    });
+  }
+  el('btnStart').addEventListener('click', function () { audio(); newMatch(); });
+  el('btnAgain').addEventListener('click', function () { audio(); newMatch(); });
+  el('btnMenu').addEventListener('click', function () {
+    state = 'menu';
+    el('over').hidden = true;
+    el('menu').hidden = false;
+    scores = [0, 0]; overtime = false; clock = MATCH_SECONDS;
+    resetPositions();
+    updateHUD();
+    syncPause();
+  });
+  el('btnPause').addEventListener('click', togglePause);
+  el('btnMute').addEventListener('click', toggleMute);
+
+  // touch joystick and kick
+  var stick = el('stick'), knob = el('knob'), stickOn = false;
+  function stickMove(e) {
+    var r = stick.getBoundingClientRect();
+    var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    var dx = e.clientX - cx, dy = e.clientY - cy;
+    var max = r.width / 2;
+    var l = Math.sqrt(dx * dx + dy * dy);
+    if (l > max) { dx *= max / l; dy *= max / l; l = max; }
+    var ax = dx / max, ay = dy / max;
+    if (l / max < 0.15) { ax = 0; ay = 0; }
+    touchAx = ax; touchAy = ay;
+    knob.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+  }
+  function stickEnd() {
+    stickOn = false;
+    touchAx = 0; touchAy = 0;
+    knob.style.transform = 'translate(0,0)';
+  }
+  stick.addEventListener('pointerdown', function (e) {
+    e.preventDefault();
+    stickOn = true;
+    audio();
+    try { stick.setPointerCapture(e.pointerId); } catch (err) {}
+    stickMove(e);
+  });
+  stick.addEventListener('pointermove', function (e) { if (stickOn) stickMove(e); });
+  stick.addEventListener('pointerup', stickEnd);
+  stick.addEventListener('pointercancel', stickEnd);
+
+  var kb = el('btnKick');
+  kb.addEventListener('pointerdown', function (e) { e.preventDefault(); audio(); touchKick = true; });
+  kb.addEventListener('pointerup', function () { touchKick = false; });
+  kb.addEventListener('pointercancel', function () { touchKick = false; });
+  kb.addEventListener('pointerleave', function () { touchKick = false; });
+
+  try { if (document.fonts && document.fonts.load) document.fonts.load("900 60px 'Orbitron'"); } catch (e) {}
+
+  resetPositions();
+  setNames();
+  updateHUD();
+  resize();
+  requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>
